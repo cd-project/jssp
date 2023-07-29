@@ -1,0 +1,8 @@
+/home/cuong/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9161.40/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/home/cuong/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9161.40/bin/ninja/linux/x64/ninja -G Ninja -S /home/cuong/CLionProjects/JSSP -B /home/cuong/CLionProjects/JSSP/cmake-build-debug
+-- The following REQUIRED packages have been found:
+
+ * GUROBI
+
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/cuong/CLionProjects/JSSP/cmake-build-debug
