@@ -462,6 +462,8 @@ tuple<int, int, double, bool, double> Solver::CPLEXTimeIndexedSolver(double time
         for (int j = 0; j < J; j++) {
             IloExpr sumT;
             for (int t = 0; t < V; t++) {
+                cout << p[i][j] << endl;
+                cout << x[i][j][t] << endl;
                 sumT += (t + p[i][j]) * x[i][j][t];
             }
             model.add(C >= sumT);

@@ -10,7 +10,7 @@ int main(int   argc,
     int formula = 3 ; // Liao's Disjunctive
     string spec = "O";
     auto batchSolver = BatchSolver();
-//    batchSolver.CPLEXBatch(folderPath, outputPath, formula, timeLimit);
+    batchSolver.CPLEXBatch(folderPath, outputPath, formula, timeLimit, spec);
 
-    batchSolver.GurobiBatch(folderPath, outputPath, formula, timeLimit, spec);
+//    batchSolver.GurobiBatch(folderPath, outputPath, formula, timeLimit, spec);
 }
