@@ -26,7 +26,7 @@ public:
     // Gurobi solver
     tuple<int, int, double, bool, double> GurobiDisjunctiveSolver(double timeLimit);
     tuple<int, int, double, bool, double> GurobiLiaoDisjunctiveSolver(double timeLimit);
-    tuple<int, int, double, bool, double> GurobiTimeIndexedSolver(double timeLimit);
+    tuple<int, int, double, bool, double> GurobiTimeIndexedSolver(double timeLimit, int v, bool useV);
     tuple<int, int, double, bool, double> GurobiRankBasedSolver(double timeLimit);
 
 };

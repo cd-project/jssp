@@ -43,6 +43,7 @@ void BatchSolver::CPLEXBatch(string folderPath, string outputPath, int formula, 
         file << "Instance name,Lower bound,Upper bound,Time,Optimal,Gap\n";
         for (int i = 0; i < fileList.size(); i++) {
             auto fName = folderPath + "/" + fileList[i];
+            cout << "Current instance name: " << fName << endl;
             auto inst = Instance(fName, spec);
             auto solver = Solver(inst);
             tuple<int, int, double, bool, double> res;
@@ -79,7 +80,8 @@ void BatchSolver::CPLEXBatch(string folderPath, string outputPath, int formula, 
     }
 }
 
-void BatchSolver::GurobiBatch(std::string folderPath, std::string outputPath, int formula, double timeLimit, string spec) {
+vector<double> BatchSolver::GurobiBatch(std::string folderPath, std::string outputPath, int formula, double timeLimit, string spec, int v, bool useVTimeIndexed) {
+    vector<double> runtimes;
     vector<string> fileList;
     for (const auto& entry : filesystem::directory_iterator(folderPath)) {
         if (entry.is_regular_file()) {
@@ -102,10 +104,11 @@ void BatchSolver::GurobiBatch(std::string folderPath, std::string outputPath, in
             opF = "gurobi_rank_based_batch_" + outputPath;
             break;
         default:
-            return;
+            return runtimes;
     }
     cout << opF << endl;
     ofstream file(opF);
+    ofstream oF("OUT.txt");
     struct InstanceResult {
         string InstanceName;
         int LB;
@@ -121,7 +124,7 @@ void BatchSolver::GurobiBatch(std::string folderPath, std::string outputPath, in
             auto fName = folderPath + "/" + fileList[i];
             cout << "Current instance name: " << fName << endl;
             auto inst = Instance(fName, spec);
-            inst.PrintInstanceInfo();
+
             auto solver = Solver(inst);
             tuple<int, int, double, bool, double> res;
             InstanceResult iR;
@@ -136,7 +139,7 @@ void BatchSolver::GurobiBatch(std::string folderPath, std::string outputPath, in
                     iR =(InstanceResult{fileList[i], get<0>(res), get<1>(res), get<2>(res), get<3>(res), get<4>(res)});
                     break;
                 case 3:
-                    res = solver.GurobiTimeIndexedSolver(timeLimit);
+                    res = solver.GurobiTimeIndexedSolver(timeLimit, v, useVTimeIndexed);
                     iR =(InstanceResult{fileList[i], get<0>(res), get<1>(res), get<2>(res), get<3>(res), get<4>(res)});
                     break;
                 case 4:
@@ -150,6 +153,7 @@ void BatchSolver::GurobiBatch(std::string folderPath, std::string outputPath, in
                  << iR.RunningTime << ","
                  << iR.IsOptimal << ","
                  << iR.Gap << "\n";
+            runtimes.push_back(iR.RunningTime);
         }
 
         file.close();
@@ -157,5 +161,6 @@ void BatchSolver::GurobiBatch(std::string folderPath, std::string outputPath, in
     } else {
         std::cerr << "Error creating CSV file." << std::endl;
     }
+    return runtimes;
 }
 

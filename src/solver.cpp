@@ -217,6 +217,7 @@ tuple<int, int, double, bool, double> Solver::CPLEXLiaoDisjunctiveSolver(double 
         model.add(C >= x[lastMachineOfJob][j] + lastMachineProcessingTime);
         cout << "Constraint added: " << "C >= x[" << lastMachineOfJob << "][" << j << "] + " << lastMachineProcessingTime << endl;
     }
+    model.add(IloMinimize(env, C));
     auto startTime = std::chrono::high_resolution_clock::now();
     cplex.solve();
     auto endTime = std::chrono::high_resolution_clock::now();
@@ -273,55 +274,40 @@ tuple<int, int, double, bool, double> Solver::CPLEXRankBasedSolver(double timeLi
     }
 
     // Variable r[i][j][k]
-    vector<vector<vector<int>>> r;
-    r.reserve(M);
+    // Variable r[i][j][k]
+    std::vector<std::vector<std::vector<int>>> r(M, std::vector<std::vector<int>>(J, std::vector<int>(M)));
 
-    for (int i = 0; i < M; i++) {
-        r.emplace_back();
-        r[i].reserve(J);
-        for (int j = 0; j < J; j++) {
-            r[i].emplace_back();
-            r[i][j].reserve(M);
+    for (int j = 0; j < jobs.size(); j++) {
+        auto jobIndex = j;
+        auto machRuntimes = jobs[j].MachineRuntimes;
+        for (int idx = 0; idx < machRuntimes.size(); idx++) {
+            auto kOp = idx;
+            auto machIdx = get<0>(machRuntimes[idx]);
+            r[machIdx][j][kOp] = 1;
+            cout << "On mach: " << machIdx << ", job: " << jobIndex << ", op: " << kOp << endl;
         }
     }
-
-    for(int i = 0; i < M; i++) {
-        for (int j = 0; j < J; j++) {
-            for (int k = 0; k < M; k++) {
-                r[i][j][k] = 0;
-            }
-        }
-    }
-
-    // make some r[i][j][k] = 1
-   for (int jI = 0; jI < M; jI++) {
-       auto jobProcInfo = jobs[jI].MachineRuntimes;
-       for (int m = 0; m < jobProcInfo.size(); m++) {
-           r[get<0>(jobProcInfo[m])][jI][m] = 1;
-       }
-   }
-
    // Constraint 17
-   for (int j = 0; j < J; j++) {
-       IloExpr constr17(env);
-       for (int i = 0; i < M; i++) {
-           for (int k = 0; k < J; k++) {
+   for (int i = 0; i < M; i++) {
+       for (int k = 0; k < J; k++) {
+           IloExpr constr17(env);
+           for (int j = 0; j < J; j++) {
                constr17 += x[i][j][k];
            }
+           model.add(constr17 == 1);
+           constr17.end();
        }
-       model.add(constr17 == 1);
-       constr17.end();
    }
 
    // Constraint 18
-   for (int k = 0; k < J; k++) {
-       IloExpr constr18(env);
-       for (int i = 0; i < M; i++) {
-           for (int j = 0; j < J; j++) {
+   for (int i = 0; i < M; i++) {
+       for (int j = 0; j < J; j++) {
+           IloExpr constr18(env);
+           for (int k = 0; k < J; k++) {
                constr18 += x[i][j][k];
            }
+           model.add(constr18 == 1);
        }
-       model.add(constr18 == 1);
    }
 
    // Constraint 19
@@ -337,63 +323,68 @@ tuple<int, int, double, bool, double> Solver::CPLEXRankBasedSolver(double timeLi
    }
 
    // Constraint 20
-   for (int i = 0; i < M; i++) {
-       IloExpr rhBase(env);
-       IloExpr rp(env);
-       IloExpr rxBase(env);
-       IloExpr rxPlus(env);
-       IloExpr rhPlus(env);
-       for (int j = 0; j < J; j++) {
-           for (int l = 0; l < M - 1; l++) {
-               for (int k = 0; k < J; k++) {
-                   rhBase += r[i][j][l] * h[i][k];
-                   rxBase += r[i][j][l] * x[i][j][k];
-               }
-               rp += r[i][j][l] * p[i][j];
-               // kAp: k with apostrophe k'
-               for (int kAp = 0; kAp < J; kAp++) {
-                   rxPlus += r[i][j][l+1] * x[i][j][kAp];
-                   rhPlus += r[i][j][l+1] * h[i][kAp];
-               }
-           }
+//   for (int i = 0; i < M; i++) {
+//       IloExpr rhBase(env);
+//       IloExpr rp(env);
+//       IloExpr rxBase(env);
+//       IloExpr rxPlus(env);
+//       IloExpr rhPlus(env);
+//       for (int j = 0; j < J; j++) {
+//           for (int l = 0; l < M - 1; l++) {
+//               for (int k = 0; k < J; k++) {
+//                   rhBase += r[i][j][l] * h[i][k];
+//                   rxBase += r[i][j][l] * x[i][j][k];
+//               }
+//               rp += r[i][j][l] * p[i][j];
+//               // kAp: k with apostrophe k'
+//               for (int kAp = 0; kAp < J; kAp++) {
+//                   rxPlus += r[i][j][l+1] * x[i][j][kAp];
+//                   rhPlus += r[i][j][l+1] * h[i][kAp];
+//               }
+//           }
+//
+//       }
+//       model.add(rhBase + rp <= V * (1 - rxBase) + V * (1 - rxPlus) + rhPlus);
+//       rhBase.end();
+//       rp.end();
+//       rxBase.end();
+//       rxPlus.end();
+//       rhPlus.end();
+//   }
+    for (int j = 0; j < J; j++) {
+        for (int k = 0; k < J; k++) {
+            for (int kAp = 0; kAp < J; kAp++) {
+                for (int l = 0; l < M-1; l++) {
+                    IloExpr sum1(env);
+                    IloExpr sum2(env);
+                    IloExpr sum3(env);
+                    IloExpr sum4(env);
+                    IloExpr sum5(env);
+                    for (int i = 0; i < M; i++) {
+                        sum1 += r[i][j][l] * h[i][k];
+                        sum2 += r[i][j][l] * p[i][j];
+                        sum3 += r[i][j][l] * x[i][j][k];
+                        sum4 += r[i][j][l+1] * x[i][j][kAp];
+                        sum5 += r[i][j][l+1] * h[i][kAp];
+                    }
+                    model.add(sum1 + sum2 <= V * (1 - sum3) + V * (1 - sum4) + sum5);
+                }
+            }
+        }
+    }
 
-       }
-       model.add(rhBase + rp <= V * (1 - rxBase) + V * (1 - rxPlus) + rhPlus);
-       rhBase.end();
-       rp.end();
-       rxBase.end();
-       rxPlus.end();
-       rhPlus.end();
-   }
+    // Constraint 21
+    IloNumVar C(env);
+    for (int i = 0; i < M; i++) {
+        IloExpr sumPx(env);
+        for (int j = 0; j < J; j++) {
+            sumPx += p[i][j] * x[i][j][J-1];
+        }
+        model.add(C >= h[i][J-1] + sumPx);
+    }
 
-   // Constraint 21
-   IloNumVar C(env);
-   for (int j = 0; j < J; j++) {
-       IloExpr sumPx(env);
-       for (int i = 0; i < M; i++) {
-           for (int k = 0; k < J; k++) {
-               sumPx += p[i][j] * x[i][j][k];
-           }
 
-       }
-       for (int i = 0; i < M; i++) {
-           model.add(C >= h[i][J-1] + sumPx);
-       }
-       sumPx.end();
-   }
-   for (int i = 0; i < M; i++) {
-       for (int k = 0; k < J; k++) {
-           model.add(h[i][k] >= 0);
-       }
-   }
-   for (int i = 0; i < M; i++) {
-       for (int j = 0; j < J; j++) {
-           for (int k = 0; k < J; k++) {
-               model.add(0 <= x[i][j][k] <= 1);
-           }
-       }
-   }
-
+   model.add(IloMinimize(env, C));
    auto startTime = std::chrono::high_resolution_clock::now();
    cplex.solve();
    auto endTime = std::chrono::high_resolution_clock::now();
@@ -435,6 +426,7 @@ tuple<int, int, double, bool, double> Solver::CPLEXTimeIndexedSolver(double time
         }
     }
 //
+//    V = 100;
     // x[i][j][t]
     IloArray<IloArray<IloNumVarArray>> x(env, M);
     for (int i = 0; i < M; i++) {
@@ -445,38 +437,38 @@ tuple<int, int, double, bool, double> Solver::CPLEXTimeIndexedSolver(double time
     }
 
     // Constraint 11
-    for (int t = 0; t < V; t++) {
-        IloExpr sumX(env);
-        for (int i = 0; i < M; i++) {
-            for (int j= 0; j< J; j++) {
-                sumX += x[i][j][t];
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < J; j++) {
+            IloExpr constr11(env);
+            for (int t  = 0; t < V; t++) {
+                constr11 += x[i][j][t];
             }
-        }
-        model.add(sumX == 1);
-        sumX.end();
+            model.add(constr11 == 1);
+            constr11.end();
+;        }
     }
 
     IloNumVar C(env);
     // Constraint 12
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < J; j++) {
-            IloExpr sumT;
+            IloExpr sumT(env);
             for (int t = 0; t < V; t++) {
-                cout << p[i][j] << endl;
-                cout << x[i][j][t] << endl;
                 sumT += (t + p[i][j]) * x[i][j][t];
             }
             model.add(C >= sumT);
+            sumT.end();
         }
     }
 
     // Constraint 13
     for (int i = 0; i < M; i++) {
         for (int t = 0; t < V; t++) {
-            IloExpr sumjt;
+            IloExpr sumjt(env);
             for (int j = 0; j < J; j++) {
                 for (int tAp = t - p[i][j] + 1; tAp <= t; tAp++) {
                     if (tAp < 0) {
+                        cout << t << " " << p[i][j]  << " " << tAp << endl;
                         continue;
                     } else {
                         sumjt += x[i][j][tAp];
@@ -484,26 +476,31 @@ tuple<int, int, double, bool, double> Solver::CPLEXTimeIndexedSolver(double time
                 }
             }
             model.add(sumjt <= 1);
+            sumjt.end();
         }
     }
+
 
     // Constraint 14
     for (int j = 0; j < J; j++) {
         for (int i  = 1; i < M; i++) {
-            IloExpr lhs;
-            IloExpr rhs;
+            IloExpr lhs(env);
+            IloExpr rhs(env);
             for (int t = 0; t < V; t++) {
                 auto machAtHMinus1 = get<0>(jobs[j].MachineRuntimes[i-1]);
                 lhs += (t + p[machAtHMinus1][j]) * x[machAtHMinus1][j][t];
                 rhs += t * x[get<0>(jobs[j].MachineRuntimes[i])][j][t];
             }
             model.add(lhs <= rhs);
+            lhs.end();
+            rhs.end();
         }
     }
 
     model.add(IloMinimize(env, C));
     auto startTime = std::chrono::high_resolution_clock::now();
     cplex.solve();
+    cplex.exportModel("model_ti.lp");
     auto endTime = std::chrono::high_resolution_clock::now();
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -612,7 +609,7 @@ tuple<int, int, double, bool, double> Solver::GurobiDisjunctiveSolver(double tim
         optimal = true;
     }
     tuple<int, int, double, bool, double> result;
-    result = make_tuple(model.get(GRB_DoubleAttr_ObjBound), model.get(GRB_DoubleAttr_ObjVal), duration.count()/1000, optimal, model.get(GRB_DoubleAttr_MIPGap));
+    result = make_tuple(model.get(GRB_DoubleAttr_ObjBound), model.get(GRB_DoubleAttr_ObjVal), duration.count(), optimal, model.get(GRB_DoubleAttr_MIPGap));
 
     return result;
 }
@@ -721,22 +718,26 @@ tuple<int, int, double, bool, double> Solver::GurobiLiaoDisjunctiveSolver(double
     return result;
 }
 
-tuple<int, int, double, bool, double> Solver::GurobiTimeIndexedSolver(double timeLimit) {
+tuple<int, int, double, bool, double> Solver::GurobiTimeIndexedSolver(double timeLimit, int bigV, bool useV) {
     GRBEnv env = GRBEnv();
     GRBModel model = GRBModel(env);
-
+    env.set(GRB_IntParam_LogToConsole, 0);
     auto J = instance.NumberOfJobs;
     auto M = instance.NumberOfMachines;
     auto jobs = instance.Jobs;
     auto p = instance.ProcessingTime;
 
     int V = 0;
-    // V = sum(pij)
-    for (int i = 0; i < p.size(); i++) {
-        for (int j = 0; j < p[i].size(); j++) {
-            V += p[i][j];
+    if (useV) {
+        V = bigV;
+    } else {
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < J;j ++) {
+                V += p[i][j];
+            }
         }
     }
+
 
     auto*** x = new GRBVar **[M];
     for (int i = 0; i < M; i++) {
@@ -751,15 +752,15 @@ tuple<int, int, double, bool, double> Solver::GurobiTimeIndexedSolver(double tim
 
 
     // Constraint 11
-    for (int t = 0; t < V; t++) {
-        GRBLinExpr expr;
-        for (int i = 0; i < M; i++) {
-            for (int j= 0; j< J; j++) {
+    for (int i = 0; i < M; i++) {
+        for (int j= 0; j< J; j++) {
+            GRBLinExpr expr;
+            for (int t = 0; t < V; t++) {
                 expr += x[i][j][t];
             }
+            model.addConstr(expr, GRB_EQUAL, 1);
+            expr = 0;
         }
-        model.addConstr(expr, GRB_EQUAL, 1);
-        expr = 0;
     }
 
     GRBVar C = model.addVar(0, V, 0, GRB_INTEGER);
@@ -818,7 +819,7 @@ tuple<int, int, double, bool, double> Solver::GurobiTimeIndexedSolver(double tim
         optimal = true;
     }
     tuple<int, int, double, bool, double> result;
-    result = make_tuple(model.get(GRB_DoubleAttr_ObjBound), model.get(GRB_DoubleAttr_ObjVal), duration.count()/1000, optimal, model.get(GRB_DoubleAttr_MIPGap));
+    result = make_tuple(model.get(GRB_DoubleAttr_ObjBound), model.get(GRB_DoubleAttr_ObjVal), duration.count(), optimal, model.get(GRB_DoubleAttr_MIPGap));
 
     return result;
 }

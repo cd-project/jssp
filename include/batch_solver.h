@@ -15,7 +15,7 @@ class BatchSolver {
 public:
     BatchSolver();
     void CPLEXBatch(string folderPath, string outputPath, int formula, double tiLim, string spec);
-    void GurobiBatch(string folderPath, string outputPath, int formula, double tiLim, string spec);
+    vector<double> GurobiBatch(string folderPath, string outputPath, int formula, double tiLim, string spec, int v, bool useVTimeIndexed);
 };
 #endif //JSSP_BATCH_SOLVER_H
 
