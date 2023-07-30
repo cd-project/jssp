@@ -125,7 +125,7 @@ Instance::Instance(string filePath, string spec) {
                     // Check if there are at least two elements left in the array
                     if (i + 1 < inputArray.size()) {
                         // Create a tuple from the current two elements
-                        tuple<int, int> currentTuple = make_tuple(stoi(inputArray[i]), stoi(inputArray[i + 1]));
+                        tuple<int, int> currentTuple = make_tuple(stoi(inputArray[i]), int(stoi(inputArray[i + 1])));
                         // Add the tuple to the vector
                         tuples.push_back(currentTuple);
                     }

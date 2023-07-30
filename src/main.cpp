@@ -4,9 +4,9 @@
 #include <filesystem>
 int main(int   argc,
          char *argv[]) {
-    string folderPath = "/home/cuong/CLionProjects/JSSP/jsp50_3";
-    string outputPath = "jsp_50_3_all";
-    double timeLimit = 300.0;
+    string folderPath = "/home/cuong/CLionProjects/JSSP/jsp50_5";
+    string outputPath = "50_5";
+    double timeLimit = 3600.0;
     int formula = 3; // Liao's Disjunctive
     string spec = "O";
     auto batchSolver = BatchSolver();
@@ -22,7 +22,7 @@ int main(int   argc,
 //        cout << v << ", " << avg/100 << endl;
 //        opf << v << "," << avg/100 << "\n";
 //    }
-    auto time = batchSolver.GurobiBatch(folderPath, outputPath, formula, timeLimit, spec, 150, false);
+     batchSolver.GurobiBatch(folderPath, outputPath, formula, timeLimit, spec, 667, false);
 
 }
 

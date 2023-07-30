@@ -124,7 +124,7 @@ vector<double> BatchSolver::GurobiBatch(std::string folderPath, std::string outp
             auto fName = folderPath + "/" + fileList[i];
             cout << "Current instance name: " << fName << endl;
             auto inst = Instance(fName, spec);
-
+            inst.PrintInstanceInfo();
             auto solver = Solver(inst);
             tuple<int, int, double, bool, double> res;
             InstanceResult iR;

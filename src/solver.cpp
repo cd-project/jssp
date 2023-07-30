@@ -44,7 +44,12 @@ tuple<int, int, double, bool, double> Solver::CPLEXDisjunctiveSolver(double time
     for (int i = 0; i < M; ++i) {
         z[i] = IloArray<IloNumVarArray>(env, J);
         for (int j = 0; j < J; ++j) {
-            z[i][j] = IloNumVarArray(env, J, 0, 1, ILOINT);
+            z[i][j] = IloNumVarArray(env, J);
+            for (int k = 0; k < J; k++) {
+                if (j < k) {
+                    z[i][j][k] = IloNumVar(env, 0, 1, ILOINT);
+              }
+            }
         }
     }
 
@@ -80,13 +85,13 @@ tuple<int, int, double, bool, double> Solver::CPLEXDisjunctiveSolver(double time
         }
     }
 
-    for (int i = 0; i < M; i++) {
-        for (int j = 0; j < J; j++) {
-            for (int k = 0; k < J; k++) {
-                model.add(0 <= z[i][j][k] <= 1);
-            }
-        }
-    }
+//    for (int i = 0; i < M; i++) {
+//        for (int j = 0; j < J; j++) {
+//            for (int k = 0; k < J; k++) {
+//                model.add(0 <= z[i][j][k] <= 1);
+//            }
+//        }
+//    }
 
     IloNumVar C(env);
     for (int j = 0; j < J; j++) {
@@ -764,6 +769,10 @@ tuple<int, int, double, bool, double> Solver::GurobiTimeIndexedSolver(double tim
     }
 
     GRBVar C = model.addVar(0, V, 0, GRB_INTEGER);
+
+
+//    model.set(GRB_DoubleAttr_ObjBound, double(lowerBound));
+
     GRBLinExpr objective = GRBLinExpr(C, GRB_MINIMIZE);
 
     // Constraint 12
