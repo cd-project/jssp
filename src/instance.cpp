@@ -20,6 +20,9 @@ vector<string> SplitStringWithDelimiter(string s, string delimiter) {
     returnValue.push_back(s.substr(start));
     return returnValue;
 }
+
+
+
 Job::Job(int jobIndex, vector<tuple<int,int>> machineRuntimes) {
     this->Index = jobIndex;
     this->MachineRuntimes = std::move(machineRuntimes);
